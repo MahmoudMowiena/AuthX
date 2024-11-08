@@ -5,21 +5,24 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
 var allowAllCorsPolicy = "";
 
 // Add services to the container.
-
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddDbContext<AuthXDbContext>(option => option.UseLazyLoadingProxies().UseSqlServer(builder.Configuration.GetConnectionString("AuthXDbConnection")));
-builder.Services.AddIdentity<UserModel, RoleModel>().AddEntityFrameworkStores<AuthXDbContext>();
+// Add DbContext
+builder.Services.AddDbContext<AuthXDbContext>(option => option.UseLazyLoadingProxies().UseSqlServer(configuration.GetConnectionString("SqlServerConnection")));
 
+// Add Identity
+builder.Services.AddIdentity<User, AuthX.Domain.Models.Role>().AddEntityFrameworkStores<AuthXDbContext>();
+
+// Add CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(allowAllCorsPolicy, builder =>
@@ -30,14 +33,20 @@ builder.Services.AddCors(options =>
     });
 });
 
-//for jwt token [authorize]
+// Add Redis configuration
+builder.Services.AddScoped<IConnectionMultiplexer>(sp =>
+{
+    var redisConnectionString = configuration.GetConnectionString("RedisConnection");
+    return ConnectionMultiplexer.Connect(redisConnectionString);
+});
+
+//for JWT token [authorize]
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
 }
-
 ).AddJwtBearer(options =>
 {
     options.SaveToken = true;
@@ -52,37 +61,6 @@ builder.Services.AddAuthentication(options =>
     };
 }
 );
-
-// swagger configuration
-// builder.Services.AddSwaggerGen(c =>
-// {
-//     c.SwaggerDoc("v1", new OpenApiInfo { Title = "AuthX_API", Version = "v1" });
-//     // Define the BearerAuth security scheme
-//     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-//     {
-//         Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
-//         Name = "Authorization",
-//         In = ParameterLocation.Header,
-//         Type = SecuritySchemeType.Http,
-//         Scheme = "bearer",
-//         BearerFormat = "JWT"
-//     });
-//     // Apply the security globally
-//     c.AddSecurityRequirement(new OpenApiSecurityRequirement
-//     {
-//         {
-//             new OpenApiSecurityScheme
-//                 {
-//                     Reference = new OpenApiReference
-//                     {
-//                         Type = ReferenceType.SecurityScheme,
-//                         Id = "Bearer"
-//                     }
-//                 },
-//             Array.Empty<string>()
-//         }
-//     });
-// });
 
 // Constants for reusability
 const string API_TITLE = "AuthX API";
@@ -120,7 +98,7 @@ builder.Services.AddSwaggerGen(c =>
         BearerFormat = "JWT"
     });
 
-    // Apply the security globally to all endpoints
+    // Apply security globally to all endpoints
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
@@ -139,7 +117,7 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Configure HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -148,6 +126,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
