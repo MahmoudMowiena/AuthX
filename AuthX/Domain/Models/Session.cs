@@ -15,7 +15,7 @@ public class Session
     // [Required]
     public string Token { get; set; }
 
-    public DateTime Expiration { get; set; }
+    public DateTime ExpirationDate { get; set; }
 
     public DateTime CreatedDate { get; set; }
 

@@ -1,5 +1,6 @@
 using AuthX.Application.IServices;
 using AuthX.Presentation.DTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AuthX.Presentation.Controllers;
@@ -13,6 +14,7 @@ public class AccountController : ControllerBase
 
     public AccountController(IAccountService accountService, ILogger<AccountController> logger)
     {
+        _accountService = accountService;
         _logger = logger;
     }
 
@@ -28,9 +30,20 @@ public class AccountController : ControllerBase
         return Ok(loginResponse);
     }
 
-    [HttpPost("logout")]
+    [Authorize]
+    [HttpGet("logout")]
     public async Task<IActionResult> Logout()
     {
-        return Ok();
+        var token = "";
+        var hasLoggedout = await _accountService.Logout(token);
+
+        if (hasLoggedout)
+        {
+            return Ok();
+        }
+        else
+        {
+            return BadRequest();
+        }
     }
 }

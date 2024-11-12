@@ -1,6 +1,10 @@
 using System.Text;
+using AuthX.Application.IServices;
+using AuthX.Application.Services;
+using AuthX.Domain.IRepositories;
 using AuthX.Domain.Models;
 using AuthX.Infrastructure.Database;
+using AuthX.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -39,6 +43,10 @@ builder.Services.AddScoped<IConnectionMultiplexer>(sp =>
     var redisConnectionString = configuration.GetConnectionString("RedisConnection");
     return ConnectionMultiplexer.Connect(redisConnectionString);
 });
+
+builder.Services.AddScoped<IAccountService, AccountService>();
+builder.Services.AddScoped<ISessionRepository, SessionRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 //for JWT token [authorize]
 builder.Services.AddAuthentication(options =>

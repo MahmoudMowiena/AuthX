@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AuthX.Migrations
 {
     [DbContext(typeof(AuthXDbContext))]
-    [Migration("20241103232846_InitialCreate")]
+    [Migration("20241112202726_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -28,7 +28,7 @@ namespace AuthX.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("AuthX.Domain.Models.AuditLogModel", b =>
+            modelBuilder.Entity("AuthX.Domain.Models.AuditLog", b =>
                 {
                     b.Property<int>("LogID")
                         .ValueGeneratedOnAdd()
@@ -44,9 +44,6 @@ namespace AuthX.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("SessionID")
-                        .HasColumnType("int");
-
                     b.Property<DateTime>("Timestamp")
                         .HasColumnType("datetime2");
 
@@ -55,14 +52,12 @@ namespace AuthX.Migrations
 
                     b.HasKey("LogID");
 
-                    b.HasIndex("SessionID");
-
                     b.HasIndex("UserID");
 
                     b.ToTable("AuditLogs");
                 });
 
-            modelBuilder.Entity("AuthX.Domain.Models.PermissionModel", b =>
+            modelBuilder.Entity("AuthX.Domain.Models.Permission", b =>
                 {
                     b.Property<int>("PermissionID")
                         .ValueGeneratedOnAdd()
@@ -82,7 +77,7 @@ namespace AuthX.Migrations
                     b.ToTable("Permissions");
                 });
 
-            modelBuilder.Entity("AuthX.Domain.Models.RoleModel", b =>
+            modelBuilder.Entity("AuthX.Domain.Models.Role", b =>
                 {
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(450)");
@@ -99,6 +94,9 @@ namespace AuthX.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("NormalizedName")
@@ -106,38 +104,20 @@ namespace AuthX.Migrations
                         .HasDatabaseName("RoleNameIndex")
                         .HasFilter("[NormalizedName] IS NOT NULL");
 
+                    b.HasIndex("UserId");
+
                     b.ToTable("AspNetRoles", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = "1",
+                            Name = "SuperAdmin",
+                            NormalizedName = "SUPERADMIN"
+                        });
                 });
 
-            modelBuilder.Entity("AuthX.Domain.Models.SessionModel", b =>
-                {
-                    b.Property<int>("SessionID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SessionID"));
-
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("Expiration")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Token")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("UserID")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("SessionID");
-
-                    b.HasIndex("UserID");
-
-                    b.ToTable("Sessions");
-                });
-
-            modelBuilder.Entity("AuthX.Domain.Models.UserModel", b =>
+            modelBuilder.Entity("AuthX.Domain.Models.User", b =>
                 {
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(450)");
@@ -159,11 +139,17 @@ namespace AuthX.Migrations
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("bit");
 
+                    b.Property<string>("FirstName")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
                     b.Property<DateTime?>("LastLogin")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("LastName")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("bit");
@@ -209,6 +195,27 @@ namespace AuthX.Migrations
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
                     b.ToTable("AspNetUsers", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = "1",
+                            AccessFailedCount = 0,
+                            ConcurrencyStamp = "2d808f37-7b28-49f8-8dde-3d6b7ed0f8f3",
+                            CreatedDate = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "user1@example.com",
+                            EmailConfirmed = true,
+                            IsActive = false,
+                            LockoutEnabled = false,
+                            NormalizedEmail = "USER1@EXAMPLE.COM",
+                            NormalizedUserName = "USER1@EXAMPLE.COM",
+                            PasswordHash = "AQAAAAIAAYagAAAAEPQqxwMf6Qjcq/qGZPDYLS9SIx5mUy6rH2uBECJk+T7YDjVEPEsNaVZ4pGvTBvxFkQ==",
+                            PhoneNumber = "01100200300",
+                            PhoneNumberConfirmed = false,
+                            SecurityStamp = "2e24fd96-cced-46f0-96be-fb44fa37e8b7",
+                            TwoFactorEnabled = false,
+                            UserName = "user1@example.com"
+                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -296,6 +303,13 @@ namespace AuthX.Migrations
                     b.HasIndex("RoleId");
 
                     b.ToTable("AspNetUserRoles", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            UserId = "1",
+                            RoleId = "1"
+                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
@@ -317,65 +331,40 @@ namespace AuthX.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("PermissionModelRoleModel", b =>
+            modelBuilder.Entity("RolePermission", b =>
                 {
-                    b.Property<int>("PermissionsPermissionID")
+                    b.Property<int>("PermissionId")
                         .HasColumnType("int");
 
-                    b.Property<string>("RolesId")
+                    b.Property<string>("RoleId")
                         .HasColumnType("nvarchar(450)");
 
-                    b.HasKey("PermissionsPermissionID", "RolesId");
+                    b.HasKey("PermissionId", "RoleId");
 
-                    b.HasIndex("RolesId");
+                    b.HasIndex("RoleId");
 
-                    b.ToTable("RolePermissions", (string)null);
+                    b.ToTable("RolePermission");
                 });
 
-            modelBuilder.Entity("RoleModelUserModel", b =>
+            modelBuilder.Entity("AuthX.Domain.Models.AuditLog", b =>
                 {
-                    b.Property<string>("RolesId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("UsersId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("RolesId", "UsersId");
-
-                    b.HasIndex("UsersId");
-
-                    b.ToTable("UserRoles", (string)null);
-                });
-
-            modelBuilder.Entity("AuthX.Domain.Models.AuditLogModel", b =>
-                {
-                    b.HasOne("AuthX.Domain.Models.SessionModel", "SessionModel")
-                        .WithMany()
-                        .HasForeignKey("SessionID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("AuthX.Domain.Models.UserModel", "UserModel")
+                    b.HasOne("AuthX.Domain.Models.User", "User")
                         .WithMany()
                         .HasForeignKey("UserID");
 
-                    b.Navigation("SessionModel");
-
-                    b.Navigation("UserModel");
+                    b.Navigation("User");
                 });
 
-            modelBuilder.Entity("AuthX.Domain.Models.SessionModel", b =>
+            modelBuilder.Entity("AuthX.Domain.Models.Role", b =>
                 {
-                    b.HasOne("AuthX.Domain.Models.UserModel", "UserModel")
-                        .WithMany("Sessions")
-                        .HasForeignKey("UserID");
-
-                    b.Navigation("UserModel");
+                    b.HasOne("AuthX.Domain.Models.User", null)
+                        .WithMany("Roles")
+                        .HasForeignKey("UserId");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
-                    b.HasOne("AuthX.Domain.Models.RoleModel", null)
+                    b.HasOne("AuthX.Domain.Models.Role", null)
                         .WithMany()
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -384,7 +373,7 @@ namespace AuthX.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
                 {
-                    b.HasOne("AuthX.Domain.Models.UserModel", null)
+                    b.HasOne("AuthX.Domain.Models.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -393,7 +382,7 @@ namespace AuthX.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
                 {
-                    b.HasOne("AuthX.Domain.Models.UserModel", null)
+                    b.HasOne("AuthX.Domain.Models.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -402,13 +391,13 @@ namespace AuthX.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
                 {
-                    b.HasOne("AuthX.Domain.Models.RoleModel", null)
+                    b.HasOne("AuthX.Domain.Models.Role", null)
                         .WithMany()
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("AuthX.Domain.Models.UserModel", null)
+                    b.HasOne("AuthX.Domain.Models.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -417,46 +406,31 @@ namespace AuthX.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
                 {
-                    b.HasOne("AuthX.Domain.Models.UserModel", null)
+                    b.HasOne("AuthX.Domain.Models.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("PermissionModelRoleModel", b =>
+            modelBuilder.Entity("RolePermission", b =>
                 {
-                    b.HasOne("AuthX.Domain.Models.PermissionModel", null)
+                    b.HasOne("AuthX.Domain.Models.Permission", null)
                         .WithMany()
-                        .HasForeignKey("PermissionsPermissionID")
+                        .HasForeignKey("PermissionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("AuthX.Domain.Models.RoleModel", null)
+                    b.HasOne("AuthX.Domain.Models.Role", null)
                         .WithMany()
-                        .HasForeignKey("RolesId")
+                        .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("RoleModelUserModel", b =>
+            modelBuilder.Entity("AuthX.Domain.Models.User", b =>
                 {
-                    b.HasOne("AuthX.Domain.Models.RoleModel", null)
-                        .WithMany()
-                        .HasForeignKey("RolesId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("AuthX.Domain.Models.UserModel", null)
-                        .WithMany()
-                        .HasForeignKey("UsersId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("AuthX.Domain.Models.UserModel", b =>
-                {
-                    b.Navigation("Sessions");
+                    b.Navigation("Roles");
                 });
 #pragma warning restore 612, 618
         }
